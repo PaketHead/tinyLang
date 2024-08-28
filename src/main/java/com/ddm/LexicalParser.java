@@ -8,11 +8,11 @@ import java.util.HashSet;
 
 public class LexicalParser {
 
-    public enum ton {TYPE, NAME, R_OPEN, R_CLOSE, F_OPEN, F_CLOSE, ASSIGN, PLUS, VALUE, SEMICOLON, SPACE, ENTER};
     static HashMap<Character, Character> delimiter = new HashMap<Character, Character>();
-
+    static ArrayList<Integer> semicolonPos = new ArrayList<>();
     static HashSet<String> num = new HashSet<>();
     static HashSet<String> typeData = new HashSet<>();
+    static HashSet<String> letters = new HashSet<>();
 
     static
     {
@@ -20,10 +20,12 @@ public class LexicalParser {
         for(int i = 0; i < 10; i++) {
             num.add(String.valueOf(i));
         }
+
         delimiter.put(' ', ' ');
         delimiter.put('=', '=');
         delimiter.put(';', ';');
         delimiter.put('+', '+');
+
     };
 
     public static boolean isSpace(char space) {
@@ -72,58 +74,56 @@ public class LexicalParser {
         StringBuffer stringBuffer = new StringBuffer();
         char[] inputArray = input.toCharArray();
         int size = inputArray.length;
+        int pos = 0;
+        int count = 0;
         for(int i = 0; i < size; i++) {
             char semicolon = 0;
             stringBuffer.append(inputArray[i]);
-            if(isSpace(inputArray[i])||isSemicolon(inputArray[i])) {
+            if(isSpace(inputArray[i])||isSemicolon(inputArray[i])||i==size-1) {
                 if(isSemicolon(inputArray[i])) {
                     semicolon = inputArray[i];
+                    stringBuffer.deleteCharAt(stringBuffer.length()-1);
                 }
                 if(String.valueOf(stringBuffer).contains("\r\n")) {
+                    count++;
                     stringBuffer.delete(0,2);
                 }
-                stringBuffer.deleteCharAt(stringBuffer.length()-1);
+                if(isSpace(inputArray[i])) {
+                    stringBuffer.deleteCharAt(stringBuffer.length()-1);
+                }
                 if(isType(String.valueOf(stringBuffer))) {
-                    tokens.add(new Token(ton.TYPE, String.valueOf(stringBuffer)));
+                    tokens.add(new Token(ton.DATATYPE, String.valueOf(stringBuffer), pos));
                 }
                 else if(isNum(String.valueOf(stringBuffer))) {
-                    tokens.add(new Token(ton.VALUE, String.valueOf(stringBuffer)));
+                    tokens.add(new Token(ton.VALUE, String.valueOf(stringBuffer), pos));
                 }
                 else if(isAssign(inputArray[i-1])) {
-                    tokens.add(new Token(ton.ASSIGN, String.valueOf(stringBuffer)));
+                    tokens.add(new Token(ton.ASSIGN, String.valueOf(stringBuffer), pos));
                 }
                 else if(isPlus(inputArray[i-1])) {
-                    tokens.add(new Token(ton.PLUS, String.valueOf(stringBuffer)));
+                    tokens.add(new Token(ton.PLUS, String.valueOf(stringBuffer), pos));
                 }
+
                 else {
-                    tokens.add(new Token(ton.NAME, String.valueOf(stringBuffer)));
+                    tokens.add(new Token(ton.NAME, String.valueOf(stringBuffer), pos));
                 }
                 if(isSemicolon(semicolon)) {
-                    tokens.add(new Token(ton.SEMICOLON, String.valueOf(semicolon)));
+                    pos++;
+                    semicolonPos.add(pos);
+                    tokens.add(new Token(ton.SEMICOLON, String.valueOf(semicolon), pos));
                 }
+
                 stringBuffer.delete(0, 10);
+                pos++;
             }
 
         }
+        if(semicolonPos.size() - 1 != count) {
+            throw new CompileErrorException("Compile Error: number of ';' does not match the number of strings");
+        }
         return tokens;
     }
-    public static class Token {
-        public ton type;
-        public String data;
 
-        public Token(ton type, String data) {
-            this.type = type;
-            this.data = data;
-        }
-
-        @Override
-        public String toString() {
-            return "\tToken " +
-                    "type=" + type +
-                    ", data='" + data + '\'' +
-                    "\n";
-        }
-    }
 
 
     public static String readFile(String fileName) throws IOException {

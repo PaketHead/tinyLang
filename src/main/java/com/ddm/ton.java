@@ -1,0 +1,3 @@
+package com.ddm;
+
+public enum ton {DATATYPE, NAME, R_OPEN, R_CLOSE, F_OPEN, F_CLOSE, ASSIGN, PLUS, VALUE, SEMICOLON, SPACE, ENTER};
